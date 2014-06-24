@@ -1,9 +1,11 @@
 import os
+import logging
 from flask import Flask, request, render_template, url_for, redirect
 from gform import GForm
-import urlparse
+from urlparse import urlparse
+
 app = Flask(__name__)
-# app.config['DEBUG'] = True
+app.config['DEBUG'] = True
 
 # TO DO:
 #   Given a public URL, give a Twilio URL
@@ -40,30 +42,34 @@ class NoTwilioParametersInFormException(Exception):
 
 class TestURL:
     def __init__(self, url):
+
         self.parameters = None
         self.message = ""
         self.url = url
-        parsed_url = urlparse.urlparse(url)
-        if not "http" in parsed_url.scheme:
+        
+        parsed_url = urlparse(url)
+
+        if not "https" in parsed_url.scheme:
             raise NoURLException("No input, expected URL.")
+
         if not "google.com" in parsed_url.netloc:
             message = "Input URL must contain 'google.com'."
             raise NoGoogleInURLException(message)
-        query = urlparse.parse_qs(parsed_url.query)
-        if query and 'key' in query:
-            message = "URL appears to be for a spreadsheet, " \
-                      "URL must be for a form."
-            raise URLForGoogleSpreadsheetNotFormException(message)
-        if not query or not 'formkey' in query:
-            message = "Input URL must contain 'formkey' query parameter."
-            raise URLNotForGoogleFormException(message)
-        self.formkey = query['formkey'][0]
+
+        path_parts = parsed_url.path.split('/')
+
+        self.formkey = path_parts[len(path_parts)-2]
+        
         try:
             gform = GForm(self.formkey)
-        except:
+        except Exception as inst:
+
+            logging.warn(inst)
+
             message = "Error form at URL, " \
                       "does the URL exist and point to a form?"
             raise GoogleFormDoesntExistException(message)
+
         intersection = twilio_parameters.intersection(gform.labels)
         if intersection == set():
             message = "Form at URL must contain at least " \
@@ -77,9 +83,9 @@ class TestURL:
 def index():
     return render_template('base.html', state="nothing-submitted")
 
-
 @app.route("/submit", methods=['GET', 'POST'])
 def submit():
+
     if request.method == 'GET':
         return redirect(url_for('index'))
 
@@ -88,10 +94,13 @@ def submit():
     form = None
     try:
         form = TestURL(request.form['url'])
+
         message = "Looks good! " \
                   "Here is the data that will be sent to your spreadsheet:"
         valid = True
+
         sms_request_url = url_for('form', formkey=form.formkey, _external=True)
+
     except NoURLException:
         message = "No URL entered. " \
                   'Maybe you just pressed the "Submit" button ' \
@@ -117,7 +126,7 @@ def submit():
                   "but it doesn't have any inputs for Twilio data. " \
                   "Update your form to accept at least one Twilio parameter " \
                   "and try again."
-    except:
+    except Exception as inst:
         message = "Well, this is embarassing, something went wrong. " \
                   "Perhaps you can try again?"
     if valid:
@@ -139,14 +148,15 @@ def submit():
 # /spreadsheet/viewform?formkey=aBCdEfG0hIJkLM1NoPQRStuvwxYZAbc2DE#git=0
 @app.route("/form/<formkey>", methods=['GET', 'POST'])
 def form(formkey):
+
     gform = GForm(formkey)
 
     # I could probably re-implement this with fewer lines using sets
-    for key in request.form:
+    for key in request.values:
         if key in gform.labels:
             name = gform.labels[key]
-            gform.parameters[name] = request.form[key]
-
+            gform.parameters[name] = request.values[key]
+   
     return gform.submit()
 
 if __name__ == "__main__":

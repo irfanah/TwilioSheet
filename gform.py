@@ -1,7 +1,9 @@
 from pyquery import PyQuery as pq
 import urllib
+import urllib2
 import re
-
+import logging
+import httplib
 
 class GFormException(Exception):
     pass
@@ -22,37 +24,52 @@ class GForm:
        for a Google Form input and the 'value' is the input name"""
 
     def __init__(self, formkey):
+
         """Given a Google Form 'formkey',
            will parse interesting information from said form."""
-        form_url = "https://docs.google.com/spreadsheet/" \
-                   "viewform?formkey=%s" % formkey
+        form_url = "https://docs.google.com/forms/d/{0}/viewform".format(formkey)
+
         self.formkey = ''
         self.action_url = ''
         self.parameters = {}
         self.labels = {}
+
         try:
-            d = pq(url=form_url)
-        except:
-            raise GFormException("""
+            html = pq(url=form_url)
 
-Error parsing URL '%s', did you pass the correct formkey?""")
+        except Exception as inst:
+            logging.warn(inst)
+            raise GFormException("""Error parsing URL '%s', did you pass the correct formkey?""")
 
-        form = d('#ss-form')
-        # Define parameters with default values, if any
-        for item in d('#ss-form input'):
-            self.parameters[item.name] = item.value
-        # Map out the label to form-input-name relationships
-        for item in d.find('div.ss-form-entry'):
-            elements = list(item)
-            if not elements[0].tag == 'label':
-                continue
-            input_label = elements[0].text.rstrip()
-            input_id = elements[2].name
-            self.labels[input_label] = input_id
+        form = html('#ss-form')
         self.action_url = form.attr['action']
+
+        # Define parameters with default values, if any
+        #for item in html('#ss-form input'):
+        #    self.parameters[item.name] = item.value
+
+        # Map out the label to form-input-name relationships
+        for item in html.find('.ss-item.ss-text'):
+            text_item = pq(item)
+            input_label = text_item.find('.ss-q-title').text()
+            input_id = text_item.find('input[type=\'text\']').attr('id')
+            input_name = text_item.find('input[type=\'text\']').attr('name')
+            input_value = text_item.find('input[type=\'text\']').val()
+
+            #if (input_label != ""):
+                #logging.warn(input_label)
+
+            if (input_id != ""):
+                #logging.warn(input_id)
+                #logging.warn("Name: {0}".format( input_name ))
+                #logging.warn("Value: {0}".format( input_value ))
+                self.parameters[input_name] = input_value
+
+            self.labels[input_label] = input_id
 
     def show_state(self):
         """Print the contents of the 'paramaters' and 'labels' properties"""
+
         print "Parameters:",
         print self.parameters
         print "Labels:",
@@ -61,11 +78,11 @@ Error parsing URL '%s', did you pass the correct formkey?""")
     def submit(self):
         """Submit the contents of the 'parameters' property
            to the Google Form"""
-        f = urllib.urlopen(self.action_url, urllib.urlencode(self.parameters))
-        form_submission_result = f.read()
-        message = "Error submitting to form."
-        if re.search(r'Create your own form', form_submission_result):
-            message = "Submitted successfully!"
+
+        f = urllib2.urlopen(self.action_url, urllib.urlencode(self.parameters))
+        result = pq(f.read())
+        message = result.find('.ss-resp-message').text()
+        
         # http://bit.ly/12ySdJQ
         response = "<Response><!-- %s --></Response>" % message
         return response
