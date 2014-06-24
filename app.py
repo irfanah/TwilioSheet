@@ -1,8 +1,8 @@
 import os
-import logging
 from flask import Flask, request, render_template, url_for, redirect
-from gform import GForm
 from urlparse import urlparse
+from gform import GForm
+from exceptions import *
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
@@ -15,30 +15,23 @@ twilio_parameters = set(['SmsSid', 'AccountSid', 'From', 'To', 'Body',
                          'FromCity', 'FromState', 'FromZip', 'FromCountry',
                          'ToCity', 'ToState', 'ToZip', 'ToCountry'])
 
-
 class NoURLException(Exception):
     pass
-
 
 class NoGoogleInURLException(Exception):
     pass
 
-
 class URLNotForGoogleFormException(Exception):
     pass
-
 
 class URLForGoogleSpreadsheetNotFormException(Exception):
     pass
 
-
 class GoogleFormDoesntExistException(Exception):
     pass
 
-
 class NoTwilioParametersInFormException(Exception):
     pass
-
 
 class TestURL:
     def __init__(self, url):
@@ -78,12 +71,11 @@ class TestURL:
         self.parameters = intersection
 
 
-# TODO: Add to template: "Send SMSes to the /form route"
-@app.route("/")
+@app.route("/", methods=['GET'])
 def index():
     return render_template('base.html', state="nothing-submitted")
 
-@app.route("/submit", methods=['GET', 'POST'])
+@app.route("/", methods=['POST'])
 def submit():
 
     if request.method == 'GET':

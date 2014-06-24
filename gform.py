@@ -3,7 +3,6 @@ import urllib
 import urllib2
 import re
 import logging
-import httplib
 
 class GFormException(Exception):
     pass
