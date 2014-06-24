@@ -77,7 +77,8 @@ def index():
 
 @app.route("/", methods=['POST'])
 def submit():
-
+    # I believe this is dead code because the above method will always get
+    # called before this hits
     if request.method == 'GET':
         return redirect(url_for('index'))
 
@@ -138,6 +139,8 @@ def submit():
 
 # https://docs.google.com
 # /spreadsheet/viewform?formkey=aBCdEfG0hIJkLM1NoPQRStuvwxYZAbc2DE#git=0
+# I'd rename this function as "form" can conflict as a name with other
+# libraries
 @app.route("/form/<formkey>", methods=['GET', 'POST'])
 def form(formkey):
 
