@@ -5,7 +5,7 @@ from gform import GForm
 from exceptions import *
 
 app = Flask(__name__)
-app.config['DEBUG'] = True
+#app.config['DEBUG'] = True
 
 # TO DO:
 #   Given a public URL, give a Twilio URL
