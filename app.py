@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, render_template, url_for, redirect
 from urlparse import urlparse
 from gform import GForm
+# star importing is discouraged
 from exceptions import *
 
 app = Flask(__name__)
@@ -140,7 +141,7 @@ def submit():
 # https://docs.google.com
 # /spreadsheet/viewform?formkey=aBCdEfG0hIJkLM1NoPQRStuvwxYZAbc2DE#git=0
 # I'd rename this function as "form" can conflict as a name with other
-# libraries
+# libraries. Does this function really work with both GET and POST?
 @app.route("/form/<formkey>", methods=['GET', 'POST'])
 def form(formkey):
 

@@ -1,4 +1,6 @@
 from pyquery import PyQuery as pq
+# for HTTP calls check out the requests library. If you can avoid urllib
+# that's the way to go
 import urllib
 import urllib2
 import re
@@ -38,6 +40,10 @@ class GForm:
 
         except Exception as inst:
             logging.warn(inst)
+            # if you want to stick to PEP8 (78 characters in a line max) you 
+            # can break strings and lines with: 
+            # "here's my string " + \
+            # "continuation of the string"
             raise GFormException("""Error parsing URL '%s', did you pass the correct formkey?""")
 
         form = html('#ss-form')
